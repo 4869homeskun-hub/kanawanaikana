@@ -1,0 +1,350 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>叶わないかな？｜恋愛診断</title>
+<style>
+:root{--bg:#09090d;--card:#111117;--text:#fff;--muted:#9d9da8;--pink:#ff4d7a;--pink2:#ff82a3;--line:#292932}
+*{box-sizing:border-box}
+body{margin:0;min-height:100svh;background:#050507;color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Yu Gothic",sans-serif;display:flex;justify-content:center}
+.app{position:relative;width:min(100%,430px);min-height:100svh;background:radial-gradient(circle at 50% 20%,rgba(255,77,122,.08),transparent 32%),linear-gradient(180deg,#0a0a0f,#09090d);overflow:hidden}
+.progress{position:absolute;top:0;left:0;height:3px;background:linear-gradient(90deg,var(--pink),var(--pink2));width:0;transition:.25s}
+.top{padding:28px 26px 0;color:#8b8b96;font-size:12px;letter-spacing:.14em}
+.screen{display:none;min-height:calc(100svh - 55px);padding:52px 28px 30px;flex-direction:column;justify-content:center}
+.screen.active{display:flex}
+.title{font-size:44px;line-height:1.12;margin:0 0 20px;letter-spacing:-.04em}
+.sub{font-size:16px;line-height:1.8;color:#aaaab4;margin:0 0 38px}
+.btn{border:0;border-radius:18px;padding:18px;font-size:17px;font-weight:800;width:100%;cursor:pointer}
+.primary{background:linear-gradient(135deg,var(--pink),var(--pink2));color:white;box-shadow:0 10px 35px rgba(255,77,122,.25)}
+.ghost{margin-top:10px;background:#181820;color:white;border:1px solid #2b2b35}
+.brand{margin-top:auto;padding-top:28px;text-align:center;color:#686872;font-size:12px}
+.qnum{font-size:12px;letter-spacing:.16em;color:var(--pink2);margin-bottom:16px}
+.question{font-size:28px;line-height:1.45;margin:0 0 24px}
+.choice{display:block;width:100%;padding:16px 18px;margin:9px 0;border-radius:16px;border:1px solid #2c2c35;background:#15151c;color:white;text-align:left;font-size:15px}
+.loading{text-align:center}
+.orb{width:94px;height:94px;border-radius:50%;margin:0 auto 30px;background:radial-gradient(circle at 45% 35%,#ff9bb7,var(--pink) 55%,#d52f60);box-shadow:0 0 35px rgba(255,77,122,.4);animation:pulse 1.1s infinite ease-in-out}
+@keyframes pulse{0%,100%{transform:scale(.9);opacity:.7}50%{transform:scale(1.08);opacity:1}}
+.resultbox{padding:26px;border-radius:24px;background:rgba(20,20,27,.9);border:1px solid #2b2b34;margin-bottom:18px}
+.label{font-size:13px;color:#9696a0;letter-spacing:.14em;margin-bottom:10px}
+.score{font-size:74px;font-weight:900;letter-spacing:-.06em;line-height:1;margin-bottom:18px}
+.message{font-size:25px;font-weight:800;line-height:1.45;margin-bottom:12px}
+.detail{font-size:14px;line-height:1.8;color:#aaaab4}
+.tag{display:inline-block;margin-top:16px;padding:8px 12px;border-radius:999px;background:#1e1e27;border:1px solid #30303a;color:#ff92ae;font-size:12px}
+.note{text-align:center;font-size:11px;color:#666671;line-height:1.6;margin-top:14px}
+.storyHint{text-align:center;color:#8b8b96;font-size:11px;line-height:1.6;margin-top:8px}
+</style>
+</head>
+<body>
+<div class="app">
+<div class="progress" id="progress"></div>
+<div class="top">NINOSHUN / LOVE CHECK</div>
+
+<section class="screen active" id="start">
+  <h1 class="title">叶わないかな？</h1>
+  <p class="sub">好きな人をひとり思い浮かべて。<br>10問で、今の2人の距離を診断します。</p>
+  <button class="btn primary" onclick="startQuiz()">診断する</button>
+  <div class="brand">♪ 叶わないかな / にのしゅん</div>
+</section>
+
+<section class="screen" id="quiz">
+  <div class="qnum" id="qnum"></div>
+  <h2 class="question" id="question"></h2>
+  <div id="choices"></div>
+</section>
+
+<section class="screen" id="loading">
+  <div class="loading">
+    <div class="orb"></div>
+    <h2 class="question" style="margin-bottom:10px">2人の未来を診断中…</h2>
+    <p class="sub" style="margin:0">ちょっとだけ待って。</p>
+  </div>
+</section>
+
+<section class="screen" id="result">
+  <div class="resultbox">
+    <div class="label">叶う確率</div>
+    <div class="score" id="score">--%</div>
+    <div class="message" id="message"></div>
+    <div class="detail" id="detail"></div>
+    <div class="tag" id="tag"></div>
+  </div>
+
+  <button class="btn primary" onclick="makeStoryImage()">ストーリー画像を作る</button>
+  <button class="btn ghost" onclick="shareText()">結果をテキストでシェア</button>
+  <button class="btn ghost" onclick="playSong()">♪ もう一度サビを聴く</button>
+  <button class="btn ghost" onclick="restart()">もう一度やる</button>
+  <div class="storyHint">ストーリー画像には診断結果＋QRコードが入ります</div>
+  <div class="note">※この診断はエンタメです。</div>
+  <div class="brand">♪ 叶わないかな / にのしゅん</div>
+</section>
+
+<img id="qrImg" src="qr.png" alt="" style="display:none">
+<canvas id="storyCanvas" width="1080" height="1920" style="display:none"></canvas>
+<audio id="song" preload="auto" src="kanawanai.mp4"></audio>
+</div>
+
+<script>
+"use strict";
+
+const PUBLIC_URL="https://kanawanaigamestable-2.vercel.app";
+const CHORUS_START=0;
+
+const questions=[
+ {q:"最近、相手から連絡が来ることある？",a:[["よく来る",10],["たまに来る",7],["ほぼ自分から",3],["ほとんど連絡してない",1]]},
+ {q:"2人きりで会ったことある？",a:[["何回もある",10],["1〜2回ある",7],["グループならある",4],["まだない",1]]},
+ {q:"相手から質問されたり、話を広げてくれる？",a:[["かなりある",10],["普通にある",7],["たまにある",4],["ほぼない",1]]},
+ {q:"返信の速さはどんな感じ？",a:[["かなり早い",10],["普通",7],["遅いけど返ってくる",4],["既読・未読スルー多め",1]]},
+ {q:"次に会う予定を、相手から提案されたことある？",a:[["よくある",10],["一度はある",7],["こちらから誘えば来る",4],["ほぼない",1]]},
+ {q:"一緒にいる時、距離感は近い？",a:[["かなり近い",10],["普通より近い",7],["普通",4],["少し壁を感じる",1]]},
+ {q:"恋愛の話や過去の恋愛について話してくれる？",a:[["かなり話す",10],["たまに話す",7],["少しだけ",4],["ほぼ話さない",1]]},
+ {q:"他の人より少し特別扱いされてる感じある？",a:[["かなりある",10],["少しある",7],["分からない",4],["全くない",1]]},
+ {q:"あなたが他の異性の話をした時、反応が変わる？",a:[["ちょっと嫉妬っぽい",10],["気にしてそう",7],["普通",4],["全く気にしない",1]]},
+ {q:"今後の予定や未来の話に、あなたが入ってる？",a:[["よく入ってる",10],["たまに入ってる",7],["ほぼない",4],["全くない",1]]}
+];
+
+const outcomes=[
+ [92,"ほぼ両想いかも。","相手からの反応もかなり強め。今は迷うより、自然に一歩進めるタイミング。","告白圏内"],
+ [85,"かなり、叶いそう。","脈ありサインが複数出てる。2人きりの時間を増やすほど進展しやすそう。","かなり脈あり"],
+ [78,"今、動く価値あり。","関係性は良い方向。軽い誘いや少し特別な会話が効きそう。","脈あり"],
+ [70,"あと一歩かも。","良い流れはある。焦らず、相手発のアクションが増えるか見てみて。","あと一歩"],
+ [62,"可能性はある。","今は告白より、会話や接点を増やす方が大事。","育てる恋"],
+ [54,"五分五分。","悪くないけど決め手不足。相手の行動をもう少し見極めたい。","五分五分"],
+ [46,"まだ友達寄り。","恋愛対象に入るには、少しだけ特別な見せ方が必要そう。","友達寄り"],
+ [38,"今は、追いすぎ注意。","こちらから動きすぎてる可能性あり。少し余白を作って。","様子見"],
+ [30,"まだ遠いかも。","今は結果を急がず、まず自然に仲良くなる段階。","距離あり"],
+ [0,"今はまだ、叶わないかな。","現時点では距離がありそう。でも関係は固定じゃない。まず会話から。","ここから"]
+];
+
+let step=0,total=0;
+
+function show(id){
+  document.querySelectorAll(".screen").forEach(el=>el.classList.remove("active"));
+  const target=document.getElementById(id);
+  if(target) target.classList.add("active");
+}
+
+function startQuiz(){
+  step=0; total=0;
+  show("quiz");
+  renderQuestion();
+}
+
+function renderQuestion(){
+  const item=questions[step];
+  document.getElementById("qnum").textContent="QUESTION "+(step+1)+" / 10";
+  document.getElementById("question").textContent=item.q;
+  document.getElementById("progress").style.width=((step/10)*100)+"%";
+  const box=document.getElementById("choices");
+  box.innerHTML="";
+  item.a.forEach(([text,points])=>{
+    const b=document.createElement("button");
+    b.className="choice";
+    b.textContent=text;
+    b.addEventListener("click",()=>answer(points),{once:true});
+    box.appendChild(b);
+  });
+}
+
+function answer(points){
+  total+=points;
+  step++;
+  if(step<questions.length){
+    renderQuestion();
+  }else{
+    document.getElementById("progress").style.width="100%";
+
+    // iPhone対策：最後のタップ中に音源を再生開始し、診断中は無音にする
+    const audio=document.getElementById("song");
+    if(audio){
+      try{
+        audio.pause();
+        audio.currentTime=CHORUS_START;
+        audio.volume=0;
+        const p=audio.play();
+        if(p && p.catch) p.catch(()=>{});
+      }catch(e){}
+    }
+
+    show("loading");
+    window.setTimeout(displayResult,1500);
+  }
+}
+
+function displayResult(){
+  let score=Math.round(total + (Math.random()*4-2));
+  score=Math.max(10,Math.min(98,score));
+
+  let chosen=outcomes[outcomes.length-1];
+  for(const row of outcomes){
+    if(score>=row[0]){ chosen=row; break; }
+  }
+
+  document.getElementById("score").textContent=score+"%";
+  document.getElementById("message").textContent=chosen[1];
+  document.getElementById("detail").textContent=chosen[2];
+  document.getElementById("tag").textContent="#"+chosen[3];
+
+  show("result");
+
+  const audio=document.getElementById("song");
+  if(audio){
+    try{
+      audio.volume=.9;
+      if(audio.paused){
+        const p=audio.play();
+        if(p && p.catch) p.catch(()=>{});
+      }
+    }catch(e){}
+  }
+}
+
+function playSong(){
+  const audio=document.getElementById("song");
+  if(!audio) return;
+  try{
+    audio.pause();
+    audio.currentTime=CHORUS_START;
+    audio.volume=.9;
+    const p=audio.play();
+    if(p && p.catch) p.catch(()=>{});
+  }catch(e){}
+}
+
+function rr(ctx,x,y,w,h,r){
+  const radius=Math.min(r,w/2,h/2);
+  ctx.beginPath();
+  ctx.moveTo(x+radius,y);
+  ctx.arcTo(x+w,y,x+w,y+h,radius);
+  ctx.arcTo(x+w,y+h,x,y+h,radius);
+  ctx.arcTo(x,y+h,x,y,radius);
+  ctx.arcTo(x,y,x+w,y,radius);
+  ctx.closePath();
+}
+
+function wrapCentered(ctx,text,cx,y,maxWidth,lineHeight,maxLines){
+  const chars=[...text];
+  let lines=[], line="";
+  for(const ch of chars){
+    const test=line+ch;
+    if(ctx.measureText(test).width>maxWidth && line){
+      lines.push(line);
+      line=ch;
+      if(lines.length>=maxLines-1) break;
+    }else{
+      line=test;
+    }
+  }
+  if(line && lines.length<maxLines) lines.push(line);
+  lines.forEach((ln,i)=>ctx.fillText(ln,cx,y+i*lineHeight));
+}
+
+async function makeStoryImage(){
+  const canvas=document.getElementById("storyCanvas");
+  const ctx=canvas.getContext("2d");
+  const W=1080,H=1920;
+
+  const score=document.getElementById("score").textContent;
+  const message=document.getElementById("message").textContent;
+  const detail=document.getElementById("detail").textContent;
+  const tag=document.getElementById("tag").textContent;
+
+  const bg=ctx.createLinearGradient(0,0,0,H);
+  bg.addColorStop(0,"#08080c");
+  bg.addColorStop(.55,"#111118");
+  bg.addColorStop(1,"#08080c");
+  ctx.fillStyle=bg;
+  ctx.fillRect(0,0,W,H);
+
+  const glow=ctx.createRadialGradient(W/2,320,20,W/2,320,500);
+  glow.addColorStop(0,"rgba(255,77,122,.28)");
+  glow.addColorStop(1,"rgba(255,77,122,0)");
+  ctx.fillStyle=glow;
+  ctx.fillRect(0,0,W,H);
+
+  ctx.textAlign="center";
+  ctx.fillStyle="#9b9ba5";
+  ctx.font='500 28px -apple-system,BlinkMacSystemFont,"Hiragino Sans","Yu Gothic",sans-serif';
+  ctx.fillText("NINOSHUN / LOVE CHECK",W/2,120);
+
+  ctx.fillStyle="#ffffff";
+  ctx.font='700 66px -apple-system,BlinkMacSystemFont,"Hiragino Sans","Yu Gothic",sans-serif';
+  ctx.fillText("叶わないかな？",W/2,255);
+
+  ctx.fillStyle="rgba(24,24,31,.94)";
+  rr(ctx,110,360,860,980,46);
+  ctx.fill();
+
+  ctx.fillStyle="#a8a8b2";
+  ctx.font='500 30px -apple-system,BlinkMacSystemFont,"Hiragino Sans","Yu Gothic",sans-serif';
+  ctx.fillText("叶う確率",W/2,495);
+
+  ctx.fillStyle="#ffffff";
+  ctx.font='800 170px -apple-system,BlinkMacSystemFont,"Hiragino Sans","Yu Gothic",sans-serif';
+  ctx.fillText(score,W/2,735);
+
+  ctx.fillStyle="#ff7197";
+  ctx.font='700 48px -apple-system,BlinkMacSystemFont,"Hiragino Sans","Yu Gothic",sans-serif';
+  wrapCentered(ctx,message,W/2,880,700,66,3);
+
+  ctx.fillStyle="#c3c3ca";
+  ctx.font='400 31px -apple-system,BlinkMacSystemFont,"Hiragino Sans","Yu Gothic",sans-serif';
+  wrapCentered(ctx,detail,W/2,1045,700,52,6);
+
+  ctx.fillStyle="#ff7197";
+  ctx.font='600 27px -apple-system,BlinkMacSystemFont,"Hiragino Sans","Yu Gothic",sans-serif';
+  ctx.fillText(tag,W/2,1260);
+
+  // QR
+  const qrImg=document.getElementById("qrImg");
+  ctx.fillStyle="#ffffff";
+  rr(ctx,385,1400,310,310,26);
+  ctx.fill();
+  ctx.drawImage(qrImg,410,1425,260,260);
+
+  ctx.fillStyle="#ffffff";
+  ctx.font='700 30px -apple-system,BlinkMacSystemFont,"Hiragino Sans","Yu Gothic",sans-serif';
+  ctx.fillText("あなたも診断してみて",W/2,1760);
+
+  ctx.fillStyle="#9999a3";
+  ctx.font='400 25px -apple-system,BlinkMacSystemFont,"Hiragino Sans","Yu Gothic",sans-serif';
+  ctx.fillText("♪ 叶わないかな / にのしゅん",W/2,1820);
+
+  const blob=await new Promise(res=>canvas.toBlob(res,"image/png",1));
+  const file=new File([blob],"kanawanai-kana-result.png",{type:"image/png"});
+
+  if(navigator.canShare && navigator.canShare({files:[file]})){
+    try{
+      await navigator.share({files:[file],title:"叶わないかな？恋愛診断",text:"私の結果は "+score});
+      return;
+    }catch(e){}
+  }
+
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement("a");
+  a.href=url;
+  a.download="kanawanai-kana-result.png";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),2000);
+}
+
+async function shareText(){
+  const text="「叶わないかな？」恋愛診断\n叶う確率 "+document.getElementById("score").textContent+"\n"+document.getElementById("message").textContent+"\n"+PUBLIC_URL;
+  if(navigator.share){
+    try{await navigator.share({title:"叶わないかな？",text});return;}catch(e){}
+  }
+  try{await navigator.clipboard.writeText(text);alert("結果をコピーしました");}catch(e){alert(text)}
+}
+
+function restart(){
+  const audio=document.getElementById("song");
+  if(audio) audio.pause();
+  step=0; total=0;
+  document.getElementById("progress").style.width="0%";
+  show("start");
+}
+</script>
+</body>
+</html>
